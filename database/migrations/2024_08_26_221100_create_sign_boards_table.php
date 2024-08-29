@@ -11,12 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('categories', function (Blueprint $table) {
+        Schema::create('sign_boards', function (Blueprint $table) {
             $table->id();
-            $table->string('title');
-            $table->string('size');
-            $table->string('type');
-            $table->string('status');
+            $table->string('title');       // Title field
+            $table->string('size');        // Size field
+            $table->string('type');        // Type field
+            $table->boolean('status');     // Status field
             $table->timestamps();
         });
     }
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('categories');
+        Schema::dropIfExists('sign_boards');
     }
 };

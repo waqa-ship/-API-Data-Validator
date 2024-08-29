@@ -40,7 +40,8 @@ class ProductService
     }
     public function delete_product()
     {
-        return "product is deleted";
+
+        
     }
     
 }

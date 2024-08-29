@@ -4,16 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Models\Post;
 use Illuminate\Http\Request;
-use App\Class\Human;
+use App\Services\PostService;
 class PostController extends Controller
 {
+    protected $postServices;
+    public function __construct(PostService $postServices)
+    {
+        $this->postServices = $postServices;
+    }
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
         try {
-            $post = Post::get();
+            $post = $this->postServices->search();
             return response()->json([
                 'status' => 'success',
                 'data' => $post
@@ -37,15 +42,7 @@ class PostController extends Controller
     public function store(Request $request)
     {
         try {
-            $validatedData = $request->validate([
-                // Define your validation rules here
-                'title' => 'required|max:255',
-                'description' => 'required',
-                // Add other fields as necessary
-            ]);
-            // dd($validatedData);
-    
-            $post = Post::create($validatedData);
+            $post = $this->postServices->create($request);
             return response()->json([
                 'message' => 'Post created successfully!',
                 'post' => $post
@@ -73,59 +70,31 @@ class PostController extends Controller
     {
         //
     }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    // public function update(Request $request, Post $post)
-    // {
-        
-        
-        
-    //     try {
-    //         // Update the post instance with the request data
-    //         $post->update($request->all());
-    
-    //         return response()->json([
-    //             'status' => 'success',
-    //             'message' => 'Post is updated successfully.',
-    //             'data' => $post
-    //         ], 200);
-    //     } catch (\Throwable $th) {
-    //         return response()->json([
-    //             'status' => 'error',
-    //             'message' => $th->getMessage()
-    //         ], 500);
-    //     }
-    // }
-    public function update(Request $request, Post $post)
+ public function update(Request $request, Post $post)
 {
     try {
-        // Validate the request data
+         $this->authorize('update', $post);
+
         $validatedData = $request->validate([
             'title' => 'required|string|max:255',
-            'description' => 'required|string',
+            'content' => 'required|string',
+            'category_id' => 'required|exists:categories,id',
+            'status' => 'required|in:draft,published',
+            'tags' => 'nullable|array|exists:tags,id',
         ]);
 
-        // Update the post instance with the validated data
-        $post = $post->update($validatedData);
+        $post->update($validatedData);
+        $post->tags()->sync($request->input('tags', []));
 
         return response()->json([
-            'status' => 'success',
-            'message' => 'Post is updated successfully.',
-            'data' => $post
+            'message' => 'Post updated successfully.',
+            'data' => $post->load('category', 'tags')
         ], 200);
-    } catch (ValidationException $ve) {
+
+    } catch (\Exception $e) {
         return response()->json([
-            'status' => 'error',
-            'message' => 'Validation failed',
-            'errors' => $ve->errors()
-        ], 422);
-    } catch (\Throwable $th) {
-        return response()->json([
-            'status' => 'error',
-            'message' => $th->getMessage()
-        ], 500);
+            'message' => 'Error updating post: ' . $e->getMessage()
+        ], $e instanceof AuthorizationException ? 403 : 500);
     }
 }
 
@@ -135,6 +104,7 @@ class PostController extends Controller
     public function destroy(Post $post)
     {
         try {
+            $this->postServices->delete($post);
             $delete = $post->delete(); // Delete the specific post instance
 
             return response()->json([

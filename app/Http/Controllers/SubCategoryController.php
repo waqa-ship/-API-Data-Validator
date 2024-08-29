@@ -67,19 +67,37 @@ class SubCategoryController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request,  $id)
+    public function update(Request $request, $id)
     {
-        
-        $product = SubCategory::findOrFail($id);
-        // dd($product);
-        $product->update($request->all());
-        return response()->json([
-            
-            "status"=>"record updated",
-            
-            "data" => $product], 200);
+        try {
+            // Validate the request data
+            $validatedData = $request->validate([
+                'subcatagory_name' => 'required|string|max:255',
+                
+            ]);
+    
+            $subCategory = SubCategory->update($validatedData );
+            $subCategory->update($validatedData);
+    
+            return response()->json([
+                "status" => "success",
+                "message" => "Record updated successfully",
+                "data" => $subCategory
+            ], 200);
+        } catch (ValidationException $ve) {
+            return response()->json([
+                "status" => "error",
+                "message" => "Validation failed",
+                "errors" => $ve->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                "status" => "error",
+                "message" => "An error occurred while updating the record",
+                "error" => $e->getMessage()
+            ], 500);
+        }
     }
-
     /**
      * Remove the specified resource from storage.
      */
